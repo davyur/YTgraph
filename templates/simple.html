@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Простой график из Excel</title>
+</head>
+<body>
+    <h2>Загрузите .xlsx файл</h2>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".xlsx" required>
+        <button type="submit">Построить график (по первым 2 столбцам)</button>
+    </form>
+
+    {% if plot %}
+    <h3>График:</h3>
+    <img src="{{ url_for('plot_png') }}?t={{ '%06x'|format(123456|random) }}" alt="График">
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ручной ввод данных</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav { margin-bottom: 20px; padding: 10px; background: #e9ecef; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .nav a { text-decoration: none; color: #007bff; font-weight: bold; padding: 5px 10px; border: 1px solid #007bff; border-radius: 4px; }
+        .nav a:hover { background: #007bff; color: white; }
+        input[type="text"], textarea, select { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        select { cursor: pointer; }
+        button { background: #17a2b8; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #138496; }
+        .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .plot-container { margin-top: 20px; border: 1px solid #ddd; padding: 10px; background: white; }
+        .download-btn { display: inline-block; background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+        .form-row { display: flex; gap: 20px; margin-bottom: 10px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 200px; }
+        .hint { font-size: 0.85em; color: #666; margin-top: 5px; }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/">🏠 Главная</a>
+            <a href="/analytical">📊 Аналитический режим</a>
+            <a href="/functions_only">📈 Только функции (50)</a>
+            <a href="/manual">✍️ Ручной ввод</a>
+            <a href="/instruktion">❓ Инструкция</a>
+        </div>
+
+        <h1>✍️ Ручной ввод данных</h1>
+        <p>Введите точки в формате <code>x, y</code> (по одной паре на строку).</p>
+
+        <form method="POST">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Название графика:</label>
+                    <input type="text" name="plot_title" value="{{ request.form.plot_title or '' }}">
+                </div>
+                <div class="form-group">
+                    <label>Название оси X:</label>
+                    <input type="text" name="x_title" value="{{ request.form.x_title or 'X' }}">
+                </div>
+                <div class="form-group">
+                    <label>Название оси Y:</label>
+                    <input type="text" name="y_title" value="{{ request.form.y_title or 'Y' }}">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label>Точки данных:</label>
+                <textarea name="points" placeholder="1, 2&#10;2, 4&#10;3, 6">{{ request.form.points or '' }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><input type="checkbox" name="connect_line" {{ 'checked' if request.form.connect_line else '' }}> Соединить точки линией</label>
+                </div>
+                <div class="form-group">
+                    <label>Аппроксимация:</label>
+                    <select name="approx_type" id="approx_type">
+                        <option value="none">— нет —</option>
+                        <option value="polynomial">📈 Полиномиальная</option>
+                        <option value="logarithmic">📉 Логарифмическая</option>
+                    </select>
+
+                    <span id="degree_container" style="display: none; margin-left: 10px;">
+                        <label>Степень:</label>
+                        <input type="number" name="approx_degree" min="1" max="5" value="{{ request.form.approx_degree or '1' }}" style="width: 60px;">
+                    </span>
+                </div>
+            </div>
+
+            <div class="hint">
+                💡 Логарифмическая: y = a·ln(x) + b (требует x > 0)<br>
+                💡 Полиномиальная: степень 1–5 (1 = линейная)
+            </div>
+
+            <button type="submit">Построить график</button>
+        </form>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        {% if plot_html %}
+        <div class="plot-container">
+            <h3>Результат:</h3>
+            {{ plot_html|safe }}
+            <br>
+            <a href="{{ url_for('download_manual_data') }}" class="download-btn">📥 Скачать данные как .xlsx</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.querySelector('select[name="approx_type"]');
+            const degreeDiv = document.getElementById('degree_container');
+
+            select.addEventListener('change', function() {
+                degreeDiv.style.display = this.value === 'polynomial' ? 'inline' : 'none';
+            });
+            select.dispatchEvent(new Event('change'));
+        });
+    </script>
+</body>
+</html>

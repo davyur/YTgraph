@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Графики из Excel</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav { margin-bottom: 20px; padding: 10px; background: #e9ecef; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .nav a { text-decoration: none; color: #007bff; font-weight: bold; padding: 5px 10px; border: 1px solid #007bff; border-radius: 4px; }
+        .nav a:hover { background: #007bff; color: white; }
+        .file-group { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 4px; background: #fafafa; }
+        .file-group.hidden { display: none; }
+        input[type="text"], input[type="number"], input[type="file"], select { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; }
+        select { cursor: pointer; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
+        .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #ffcccc; }
+        .plot-container { margin-top: 20px; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; }
+        label { font-weight: bold; margin-right: 10px; }
+        .hint { font-size: 0.85em; color: #666; margin-top: 5px; }
+        .file-counter { font-size: 0.9em; color: #666; margin-bottom: 10px; padding: 10px; background: #e7f3ff; border-radius: 4px; }
+        .form-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+        .form-row > * { flex: 1; min-width: 150px; }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/">🏠 Главная</a>
+            <a href="/analytical">📊 Аналитический режим</a>
+            <a href="/functions_only">📈 Только функции (50)</a>
+            <a href="/manual">✍️ Ручной ввод</a>
+            <a href="/instruktion">❓ Инструкция</a>
+        </div>
+
+        <h1>📊 Графики из Excel (до 20 файлов)</h1>
+
+        <form method="POST" enctype="multipart/form-data" id="mainForm">
+            <div style="margin-bottom: 15px;">
+                <label>Название графика:</label>
+                <input type="text" name="plot_title" placeholder="Введите заголовок" style="width: 400px;">
+            </div>
+
+            <div class="file-counter">
+                📁 Загружено файлов: <strong><span id="fileCount">0</span></strong> / 20
+            </div>
+
+            <div id="filesContainer">
+                {% for i in range(1, 21) %}
+                <div class="file-group {% if i > 5 %}hidden{% endif %}" id="fileGroup{{ i }}">
+                    <div class="form-row">
+                        <div style="flex: 2;">
+                            <strong>📁 Файл {{ i }}:</strong><br>
+                            <input type="file" name="file{{ i }}" accept=".xlsx" onchange="updateFileCount()" style="width: 100%;">
+                        </div>
+                        <div>
+                            <label><input type="checkbox" name="connect{{ i }}"> Соединять линией</label>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-top: 10px;">
+                        <div>
+                            <label>Аппроксимация:</label>
+                            <select name="approx_type{{ i }}" id="approx_type{{ i }}" style="width: 100%;">
+                                <option value="none">— нет —</option>
+                                <option value="polynomial">📈 Полиномиальная</option>
+                                <option value="logarithmic">📉 Логарифмическая</option>
+                            </select>
+                        </div>
+                        <div id="degree_container{{ i }}" style="display: none;">
+                            <label>Степень (1-5):</label>
+                            <input type="number" name="approx_degree{{ i }}" min="1" max="5" value="1" style="width: 80px;">
+                        </div>
+                    </div>
+
+                    <div class="hint">
+                        💡 <strong>Логарифмическая:</strong> y = a·ln(x) + b (требует x > 0)<br>
+                        💡 <strong>Полиномиальная:</strong> степень 1–5 (1 = линейная, 2 = парабола)
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 4px;">
+                <button type="button" class="btn-secondary" id="addFilesBtn" onclick="showMoreFiles()">
+                    ➕ Добавить ещё файлы
+                </button>
+                <button type="submit" class="btn-success">
+                    🚀 Построить график
+                </button>
+            </div>
+        </form>
+
+        {% if error %}
+        <div class="error">
+            <strong>⚠️ Ошибка:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if plot_html %}
+        <div class="plot-container">
+            <h3>✅ Результат ({{ files_count }} файлов):</h3>
+            {{ plot_html|safe }}
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 0.9em;">
+            <strong>📌 Подсказки:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Файлы должны быть в формате <code>.xlsx</code></li>
+                <li>Первый столбец = ось X, второй столбец = ось Y</li>
+                <li>Пустые строки автоматически игнорируются</li>
+                <li>Можно скачать график как PNG/PDF через меню Plotly (иконка камеры)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let visibleFiles = 5;
+        const maxFiles = 20;
+
+        function showMoreFiles() {
+            const nextBatch = Math.min(visibleFiles + 5, maxFiles);
+            for (let i = visibleFiles + 1; i <= nextBatch; i++) {
+                const group = document.getElementById('fileGroup' + i);
+                if (group) {
+                    group.classList.remove('hidden');
+                }
+            }
+            visibleFiles = nextBatch;
+
+            if (visibleFiles >= maxFiles) {
+                document.getElementById('addFilesBtn').style.display = 'none';
+            }
+        }
+
+        function updateFileCount() {
+            let count = 0;
+            for (let i = 1; i <= maxFiles; i++) {
+                const input = document.querySelector('input[name="file' + i + '"]');
+                if (input && input.value) {
+                    count++;
+                }
+            }
+            document.getElementById('fileCount').textContent = count;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for i in range(1, 21) %}
+            const select{{ i }} = document.querySelector('select[name="approx_type{{ i }}"]');
+            const degreeDiv{{ i }} = document.getElementById('degree_container{{ i }}');
+
+            if (select{{ i }}) {
+                select{{ i }}.addEventListener('change', function() {
+                    if (degreeDiv{{ i }}) {
+                        degreeDiv{{ i }}.style.display = this.value === 'polynomial' ? 'block' : 'none';
+                    }
+                });
+                select{{ i }}.dispatchEvent(new Event('change'));
+            }
+            {% endfor %}
+        });
+    </script>
+</body>
+</html>

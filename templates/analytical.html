@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитический анализ</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f0f2f5; }
+        .nav { padding: 12px 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav a { text-decoration: none; color: #1a73e8; font-weight: 500; padding: 8px 16px; border: 2px solid #1a73e8; border-radius: 20px; transition: 0.2s; }
+        .nav a:hover { background: #1a73e8; color: white; }
+        .main-container { display: flex; min-height: calc(100vh - 60px); }
+        .sidebar { width: 480px; background: white; padding: 20px; overflow-y: auto; border-right: 1px solid #ddd; }
+        .plot-area { flex: 1; padding: 20px; overflow: auto; }
+        .section { border: 1px solid #e0e0e0; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #fafafa; }
+        .section h3 { margin: 0 0 12px 0; color: #1a73e8; font-size: 1.1em; border-bottom: 2px solid #1a73e8; padding-bottom: 8px; }
+        .func-item { background: white; padding: 12px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #34a853; }
+        .func-item.hidden { display: none; }
+        input[type="text"], input[type="number"], select { padding: 8px; margin: 4px 0; border: 1px solid #dadce0; border-radius: 4px; width: 100%; }
+        .form-row { display: flex; gap: 8px; margin: 8px 0; }
+        .form-row > * { flex: 1; }
+        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; margin: 4px 0; }
+        .btn-primary { background: #1a73e8; color: white; width: 100%; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-secondary { background: #5f6368; color: white; }
+        .btn-secondary:hover { background: #3c4043; }
+        .error { color: #c62828; background: #ffebee; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+        .hint { font-size: 0.85em; color: #5f6368; margin-top: 6px; }
+        .counter { font-size: 0.9em; color: #1a73e8; margin-bottom: 10px; font-weight: 500; }
+
+        .examples-gallery { margin-top: 20px; }
+        .example-type { margin-bottom: 15px; }
+        .example-type h4 { margin: 0 0 8px 0; color: #34a853; font-size: 1em; }
+        .example-btn { display: block; width: 100%; padding: 8px 12px; margin: 4px 0;
+                      background: #e8f0fe; border: 1px solid #1a73e8; border-radius: 4px;
+                      text-align: left; cursor: pointer; font-size: 0.9em; transition: 0.2s; }
+        .example-btn:hover { background: #1a73e8; color: white; }
+        .example-btn .desc { font-size: 0.85em; opacity: 0.8; }
+        .example-btn .expr { font-family: monospace; font-weight: 500; }
+
+        .range-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .range-inputs label { font-weight: 500; font-size: 0.9em; }
+
+        @media (max-width: 1024px) {
+            .main-container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">🏠 Главная</a>
+        <a href="/analytical">📊 Аналитика</a>
+        <a href="/functions_only">📈 Функции (50)</a>
+        <a href="/manual">✍️ Ручной ввод</a>
+        <a href="/instruktion">❓ Инструкция</a>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h2 style="margin: 0 0 20px 0;">📊 Аналитический анализ</h2>
+
+            <form method="POST" enctype="multipart/form-data">
+                <!-- Название графика -->
+                <input type="text" name="plot_title" placeholder="Название графика"
+                       value="{{ request.form.plot_title or '' }}" style="margin-bottom: 15px;">
+
+                <!-- Диапазоны -->
+                <div class="section">
+                    <h3>📏 Диапазоны</h3>
+                    <div class="range-inputs">
+                        <div><label>X:</label><input type="number" name="x_min" value="{{ request.form.x_min or '-10' }}" step="0.1"> — <input type="number" name="x_max" value="{{ request.form.x_max or '10' }}" step="0.1"></div>
+                        <div><label>Y:</label><input type="number" name="y_min" value="{{ request.form.y_min or '-10' }}" step="0.1"> — <input type="number" name="y_max" value="{{ request.form.y_max or '10' }}" step="0.1"></div>
+                        <div><label>T:</label><input type="number" name="t_min" value="{{ request.form.t_min or '0' }}" step="0.1"> — <input type="number" name="t_max" value="{{ request.form.t_max or '6.28' }}" step="0.1"></div>
+                    </div>
+                    <div class="hint">💡 Тип определяется автоматически по выражению</div>
+                </div>
+
+                <!-- Файлы с аппроксимацией -->
+                <div class="section">
+                    <h3>📁 Файлы (до 10)</h3>
+                    <div class="counter">Загружено: <span id="fileCount">0</span>/10</div>
+                    {% for i in range(1, 11) %}
+                    <div class="func-item {% if i > 3 %}hidden{% endif %}" id="file{{ i }}">
+                        <input type="file" name="file{{ i }}" accept=".xlsx" onchange="updateFileCount()">
+                        <div class="form-row">
+                            <select name="approx_type{{ i }}">
+                                <option value="none" {% if request.form.get('approx_type' ~ i) == 'none' or not request.form.get('approx_type' ~ i) %}selected{% endif %}>— аппрокс —</option>
+                                <option value="polynomial" {% if request.form.get('approx_type' ~ i) == 'polynomial' %}selected{% endif %}>📈 Полином</option>
+                                <option value="logarithmic" {% if request.form.get('approx_type' ~ i) == 'logarithmic' %}selected{% endif %}>📉 Логарифм</option>
+                            </select>
+                            <input type="number" name="approx_degree{{ i }}" min="1" max="5"
+                                   value="{{ request.form.get('approx_degree' ~ i) or '1' }}"
+                                   placeholder="степень"
+                                   {% if request.form.get('approx_type' ~ i) != 'polynomial' %}style="display:none;"{% endif %}
+                                   id="approx_degree_input{{ i }}">
+                        </div>
+                        <div class="hint">
+                            💡 Полином: степень 1-5 | Логарифм: y = a·ln(x) + b
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <button type="button" class="btn-secondary" onclick="showMore('file', 3, 10, visibleFiles, (v)=>visibleFiles=v)">➕ Файлы</button>
+                </div>
+
+                <!-- Функции -->
+                <div class="section">
+                    <h3>🧮 Функции (до 10)</h3>
+                    <div class="counter">Заполнено: <span id="funcCount">0</span>/10</div>
+                    {% for i in range(1, 11) %}
+                    <div class="func-item {% if i > 2 %}hidden{% endif %}" id="func{{ i }}">
+                        <!-- Цвет и тип -->
+                        <div class="form-row">
+                            <select name="func_color{{ i }}">
+                                {% for c in color_palette %}
+                                <option value="{{ c }}"
+                                    {% if request.form.get('func_color' ~ i) == c %}selected
+                                    {% elif i == loop.index %}selected{% endif %}>{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                            <span id="detected_type{{ i }}" style="padding: 8px; background: #e8f0fe; border-radius: 4px; font-size: 0.85em; display: flex; align-items: center;">🤖 Авто</span>
+                        </div>
+                        <!-- Первое выражение -->
+                        <input type="text" name="func{{ i }}"
+                               placeholder="Введите выражение (x, y, t, theta)"
+                               value="{{ request.form.get('func' ~ i) or '' }}"
+                               oninput="updateFuncCount()">
+                        <!-- Второе выражение (для параметрических) -->
+                        <input type="text" name="func_expr2_{{ i }}"
+                               id="func_expr2_{{ i }}"
+                               placeholder="Второе выражение (для параметрических)"
+                               value="{{ request.form.get('func_expr2_' ~ i) or '' }}"
+                               style="{% if request.form.get('func_expr2_' ~ i) %}display:block;{% else %}display:none;{% endif %}">
+                        <div class="hint" id="hint{{ i }}">Используйте: x, y, t, theta | sin, cos, exp, log, sqrt</div>
+                    </div>
+                    {% endfor %}
+                    <button type="button" class="btn-secondary" onclick="showMore('func', 2, 10, visibleFuncs, (v)=>visibleFuncs=v)">➕ Функции</button>
+                </div>
+
+                <button type="submit" class="btn-primary">🚀 Построить</button>
+            </form>
+
+            <!-- Галерея примеров -->
+            <div class="section examples-gallery">
+                <h3>🎨 Примеры функций</h3>
+
+                <div class="example-type">
+                    <h4>📐 y = f(x)</h4>
+                    {% for ex in function_examples.y_x %}
+                    <button class="example-btn" onclick="fillFunc('{{ ex.expr }}', 'y_x')">
+                        <span class="expr">{{ ex.expr }}</span>
+                        <span class="desc">— {{ ex.desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="example-type">
+                    <h4>➡️ x = f(y)</h4>
+                    {% for ex in function_examples.x_y %}
+                    <button class="example-btn" onclick="fillFunc('{{ ex.expr }}', 'x_y')">
+                        <span class="expr">{{ ex.expr }}</span>
+                        <span class="desc">— {{ ex.desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="example-type">
+                    <h4>🔄 Параметрические</h4>
+                    {% for ex in function_examples.parametric %}
+                    <button class="example-btn" onclick="fillParametric('{{ ex.expr1 }}', '{{ ex.expr2 }}')">
+                        <span class="expr">x={{ ex.expr1 }}, y={{ ex.expr2 }}</span>
+                        <span class="desc">— {{ ex.desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="example-type">
+                    <h4>🌀 Полярные</h4>
+                    {% for ex in function_examples.polar %}
+                    <button class="example-btn" onclick="fillFunc('{{ ex.expr }}', 'polar')">
+                        <span class="expr">r = {{ ex.expr }}</span>
+                        <span class="desc">— {{ ex.desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="example-type">
+                    <h4>🔍 Неявные</h4>
+                    {% for ex in function_examples.implicit %}
+                    <button class="example-btn" onclick="fillFunc('{{ ex.expr }}', 'implicit')">
+                        <span class="expr">{{ ex.expr }} = 0</span>
+                        <span class="desc">— {{ ex.desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="plot-area">
+            {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
+            {% if plot_html %}
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                {{ plot_html|safe }}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 60px; color: #5f6368;">
+                <h3 style="color: #1a73e8;">📈 Введите функцию или выберите пример</h3>
+                <p>Программа автоматически определит тип функции по выражению</p>
+                <p style="font-size: 0.9em; margin-top: 20px;">
+                    Примеры:<br>
+                    <code>sin(x)</code> → y=f(x) | <code>y**2</code> → x=f(y) | <code>cos(t), sin(t)</code> → параметрическая<br>
+                    <code>sin(3*theta)</code> → полярная | <code>x**2 + y**2 - 1</code> → неявная
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        let visibleFiles = 3, maxFiles = 10;
+        let visibleFuncs = 2, maxFuncs = 10;
+
+        function showMore(prefix, start, max, visible, setter) {
+            const next = Math.min(visible + 3, max);
+            for (let i = visible + 1; i <= next; i++) {
+                const el = document.getElementById(prefix + i);
+                if (el) el.classList.remove('hidden');
+            }
+            setter(next);
+        }
+
+        function updateFileCount() {
+            let c = 0;
+            for (let i = 1; i <= maxFiles; i++) {
+                const inp = document.querySelector('input[name="file' + i + '"]');
+                if (inp && inp.value) c++;
+            }
+            document.getElementById('fileCount').textContent = c;
+        }
+
+        function updateFuncCount() {
+            let c = 0;
+            for (let i = 1; i <= maxFuncs; i++) {
+                const inp = document.querySelector('input[name="func' + i + '"]');
+                if (inp && inp.value.trim()) c++;
+            }
+            document.getElementById('funcCount').textContent = c;
+        }
+
+        function detectType(expr1, expr2 = '') {
+            const expr = (expr1 + ' ' + expr2).toLowerCase();
+            if (/\b(theta|θ)\b/.test(expr)) return '🌀 Полярная';
+            if (expr2 && /\bt\b/.test(expr)) return '🔄 Параметрическая';
+            const hasX = /\bx\b/.test(expr1), hasY = /\by\b/.test(expr1);
+            if (hasX && hasY) return '🔍 Неявная';
+            if (hasY && !hasX) return '➡️ x = f(y)';
+            return '📐 y = f(x)';
+        }
+
+        function fillFunc(expr, type) {
+            for (let i = 1; i <= maxFuncs; i++) {
+                const inp = document.querySelector('input[name="func' + i + '"]');
+                if (inp && !inp.value) {
+                    inp.value = expr;
+                    inp.dispatchEvent(new Event('input'));
+
+                    const expr2 = document.querySelector('input[name="func_expr2_' + i + '"]');
+                    if (type === 'parametric' && expr2) {
+                        expr2.style.display = 'block';
+                    }
+
+                    const hint = document.getElementById('detected_type' + i);
+                    if (hint) hint.textContent = detectType(expr);
+
+                    inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
+
+        function fillParametric(expr1, expr2) {
+            for (let i = 1; i <= maxFuncs; i++) {
+                const inp1 = document.querySelector('input[name="func' + i + '"]');
+                const inp2 = document.querySelector('input[name="func_expr2_' + i + '"]');
+                if (inp1 && !inp1.value) {
+                    inp1.value = expr1;
+                    if (inp2) {
+                        inp2.value = expr2;
+                        inp2.style.display = 'block';
+                    }
+                    inp1.dispatchEvent(new Event('input'));
+                    const hint = document.getElementById('detected_type' + i);
+                    if (hint) hint.textContent = '🔄 Параметрическая';
+                    inp1.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
+
+        // Обработка изменения типа аппроксимации
+        document.addEventListener('DOMContentLoaded', function() {
+            updateFileCount();
+            updateFuncCount();
+
+            {% for i in range(1, 11) %}
+            const approxSelect{{ i }} = document.querySelector('select[name="approx_type{{ i }}"]');
+            const approxDegree{{ i }} = document.getElementById('approx_degree_input{{ i }}');
+
+            if (approxSelect{{ i }}) {
+                approxSelect{{ i }}.addEventListener('change', function() {
+                    if (approxDegree{{ i }}) {
+                        approxDegree{{ i }}.style.display = this.value === 'polynomial' ? 'block' : 'none';
+                    }
+                });
+            }
+            {% endfor %}
+
+            // Обработка типа функций
+            document.addEventListener('input', function(e) {
+                if (e.target.name && e.target.name.startsWith('func') && !e.target.name.includes('expr2')) {
+                    const num = e.target.name.match(/\d+/);
+                    if (num) {
+                        const i = num[0];
+                        const expr1 = document.querySelector('input[name="func' + i + '"]')?.value || '';
+                        const expr2 = document.querySelector('input[name="func_expr2_' + i + '"]')?.value || '';
+                        const hint = document.getElementById('detected_type' + i);
+                        if (hint) hint.textContent = detectType(expr1, expr2);
+
+                        // Показывать второе поле для параметрических
+                        const expr2Input = document.querySelector('input[name="func_expr2_' + i + '"]');
+                        if (expr2Input) {
+                            if (/\bt\b/.test(expr1.toLowerCase())) {
+                                expr2Input.style.display = 'block';
+                            } else {
+                                expr2Input.style.display = 'none';
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

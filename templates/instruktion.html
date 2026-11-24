@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструкция</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav { margin-bottom: 20px; padding: 10px; background: #e9ecef; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .nav a { text-decoration: none; color: #007bff; font-weight: bold; padding: 5px 10px; border: 1px solid #007bff; border-radius: 4px; }
+        .nav a:hover { background: #007bff; color: white; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; color: #d63384; }
+        ul { line-height: 1.6; }
+        .highlight { background: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107; }
+        .type-example { background: #e7f3ff; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .new-feature { background: #d4edda; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745; }
+        .auto-detect { background: #e8f0fe; padding: 10px; border-radius: 4px; border-left: 4px solid #1a73e8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th { background: #e9ecef; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/">🏠 Главная</a>
+            <a href="/analytical">📊 Аналитический режим</a>
+            <a href="/functions_only">📈 Только функции (50)</a>
+            <a href="/manual">✍️ Ручной ввод</a>
+            <a href="/instruktion">❓ Инструкция</a>
+        </div>
+
+        <h1>📖 Инструкция</h1>
+
+        <div class="highlight">
+            <strong>🆕 Новое:</strong> Автоопределение типа функции + до 50 функций + выбор цвета!
+        </div>
+
+        <div class="auto-detect">
+            <strong>🤖 Автоопределение:</strong> Программа сама определяет тип функции по выражению!<br>
+            Просто введите формулу — система поймёт, что это: y=f(x), x=f(y), параметрическая, полярная или неявная.
+        </div>
+
+        <div class="section">
+            <h2>📁 Файлы</h2>
+            <ul>
+                <li>Формат: <code>.xlsx</code></li>
+                <li>Столбец 1 = X, Столбец 2 = Y</li>
+                <li><strong>Главная:</strong> до 20 файлов</li>
+                <li><strong>Аналитика:</strong> до 10 файлов</li>
+                <li>Пустые строки автоматически игнорируются</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🧮 Типы функций (Автоопределение)</h2>
+
+            <div class="type-example">
+                <strong>1. y = f(x)</strong> - Стандартная функция<br>
+                Примеры: <code>sin(x)</code>, <code>x**2</code>, <code>exp(-x)</code><br>
+                <em>Используйте переменную <code>x</code></em>
+            </div>
+
+            <div class="type-example">
+                <strong>2. x = f(y)</strong> - Обратная функция<br>
+                Примеры: <code>y**2</code>, <code>sin(y)</code>, <code>sqrt(y)</code><br>
+                <em>Используйте переменную <code>y</code> (без x)</em>
+            </div>
+
+            <div class="type-example">
+                <strong>3. Параметрическая</strong> - x = f(t), y = g(t)<br>
+                Примеры: <code>cos(t)</code> + <code>sin(t)</code> (окружность)<br>
+                <em>Используйте переменную <code>t</code> + второе поле</em>
+            </div>
+
+            <div class="type-example">
+                <strong>4. Полярная</strong> - r = f(θ)<br>
+                Примеры: <code>sin(3*theta)</code> (роза), <code>theta</code> (спираль)<br>
+                <em>Используйте переменную <code>theta</code></em>
+            </div>
+
+            <div class="type-example">
+                <strong>5. Неявная</strong> - f(x,y) = 0<br>
+                Примеры: <code>x**2 + y**2 - 1</code> (окружность), <code>(x**2 + y**2 - 1)**3 - x**2*y**3</code> (сердце)<br>
+                <em>Используйте переменные <code>x</code> и <code>y</code></em>
+            </div>
+
+            <ul style="margin-top: 15px;">
+                <li>Доступные функции: <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>exp</code>, <code>log</code>, <code>sqrt</code>, <code>abs</code>, <code>arcsin</code>, <code>arccos</code></li>
+                <li>Константы: <code>pi</code>, <code>e</code></li>
+                <li>Степень: <code>x**2</code> (не <code>x^2</code>)</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Выбор цвета</h2>
+            <ul>
+                <li>30 цветов в палитре</li>
+                <li>Каждая функция может иметь свой цвет</li>
+                <li>Выбирается в выпадающем списке</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>📏 Автомасштабирование</h2>
+            <ul>
+                <li>График автоматически подстраивается под функции</li>
+                <li>Можно задать свои диапазоны X, Y, T</li>
+                <li>T - параметр для параметрических функций</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>📈 Аппроксимация</h2>
+            <ul>
+                <li><strong>Полиномиальная:</strong> степень 1-5</li>
+                <li><strong>Логарифмическая:</strong> y = a·ln(x) + b</li>
+                <li>Отображается пунктиром поверх данных</li>
+                <li>Доступна для файлов и ручного ввода</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>💾 Экспорт</h2>
+            <ul>
+                <li>Скачивание данных в <code>.xlsx</code> (ручной ввод)</li>
+                <li>Экспорт графика: PNG, JPEG, SVG, PDF, HTML (через меню Plotly)</li>
+                <li>Иконка камеры в правом верхнем углу графика</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>📊 Режимы работы</h2>
+            <table>
+                <tr>
+                    <th>Режим</th>
+                    <th>Файлы</th>
+                    <th>Функции</th>
+                    <th>Аппроксимация</th>
+                </tr>
+                <tr>
+                    <td>Главная</td>
+                    <td>20</td>
+                    <td>—</td>
+                    <td>✅</td>
+                </tr>
+                <tr>
+                    <td>Аналитика</td>
+                    <td>10</td>
+                    <td>10</td>
+                    <td>✅</td>
+                </tr>
+                <tr>
+                    <td>Только функции</td>
+                    <td>—</td>
+                    <td>50</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td>Ручной ввод</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>✅</td>
+                </tr>
+            </table>
+        </div>
+
+        <a href="/" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px;">← На главную</a>
+    </div>
+</body>
+</html>
