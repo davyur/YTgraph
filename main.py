@@ -1,4 +1,7 @@
 import os
+import atexit
+import shutil
+import tempfile
 import pandas as pd
 import numpy as np
 import re
@@ -11,9 +14,31 @@ from io import BytesIO
 # Инициализация приложения
 # =============================================================================
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Временная директория для загружаемых файлов — существует только на время
+# работы приложения и автоматически удаляется при завершении процесса.
+TEMP_DIR = tempfile.mkdtemp(prefix='ytgraph_')
+app.config['UPLOAD_FOLDER'] = TEMP_DIR
+
+
+def _cleanup_temp_dir():
+    """Удаляет временную директорию с загруженными файлами."""
+    shutil.rmtree(TEMP_DIR, ignore_errors=True)
+
+
+atexit.register(_cleanup_temp_dir)
+
 app.secret_key = 'your-very-secret-key-change-in-production'
+
+
+def cleanup_uploaded_files(*filepaths):
+    """Немедленно удаляет указанные временные файлы после обработки."""
+    for fp in filepaths:
+        try:
+            if fp and os.path.exists(fp):
+                os.remove(fp)
+        except OSError:
+            pass
 
 # =============================================================================
 # Цветовая палитра (30 цветов)
@@ -332,6 +357,9 @@ def index_page():
                         file.save(filepath)
 
                         df = pd.read_excel(filepath, header=0)
+                        # Данные уже в памяти — временный файл больше не нужен
+                        cleanup_uploaded_files(filepath)
+
                         if df.shape[1] < 2:
                             error = f"Файл {filename}: нужно ≥2 столбцов"
                             continue
@@ -476,6 +504,9 @@ def analytical():
                 file.save(filepath)
 
                 df = pd.read_excel(filepath, header=0)
+                # Данные уже в памяти — временный файл больше не нужен
+                cleanup_uploaded_files(filepath)
+
                 if df.shape[1] < 2:
                     error = f"Файл {filename}: нужно ≥2 столбцов"
                     continue
